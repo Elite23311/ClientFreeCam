@@ -122,37 +122,37 @@ UserInputService.InputChanged:Connect(function(input, gameProcessed)
 end)
 
 RunService.RenderStepped:Connect(function(dt)
-	if freecamEnabled and camTargetCFrame then
-		yaw = yaw + (targetYaw - yaw) * 0.1
-		pitch = pitch + (targetPitch - pitch) * 0.1
+    if freecamEnabled and camTargetCFrame then
+        yaw = yaw + (targetYaw - yaw) * 0.1
+        pitch = pitch + (targetPitch - pitch) * 0.1
 
-		local moveVec = Vector3.new()
-		if moveForward then moveVec = moveVec + Vector3.new(0, 0, -1) end
-		if moveBackward then moveVec = moveVec + Vector3.new(0, 0, 1) end
-		if moveLeft then moveVec = moveVec + Vector3.new(-1, 0, 0) end
-		if moveRight then moveVec = moveVec + Vector3.new(1, 0, 0) end
-		if moveUp then moveVec = moveVec + Vector3.new(0, 1, 0) end
-		if moveDown then moveVec = moveVec + Vector3.new(0, -1, 0) end
+        local moveVec = Vector3.new()
+        if moveForward then moveVec = moveVec + Vector3.new(0, 0, -1) end
+        if moveBackward then moveVec = moveVec + Vector3.new(0, 0, 1) end
+        if moveLeft then moveVec = moveVec + Vector3.new(-1, 0, 0) end
+        if moveRight then moveVec = moveVec + Vector3.new(1, 0, 0) end
+        if moveUp then moveVec = moveVec + Vector3.new(0, 1, 0) end
+        if moveDown then moveVec = moveVec + Vector3.new(0, -1, 0) end
 
-		if moveVec.Magnitude > 0 then
-			moveVec = moveVec.Unit * camSpeed * dt
-			local yawCFrame = CFrame.Angles(0, yaw, 0)
-			local worldMove = yawCFrame:VectorToWorldSpace(moveVec)
-			camTargetCFrame = camTargetCFrame + worldMove
-		end
+        if moveVec.Magnitude > 0 then
+            moveVec = moveVec.Unit * camSpeed * dt
+            local camRotation = CFrame.Angles(pitch, yaw, 0)
+            local worldMove = camRotation:VectorToWorldSpace(moveVec)
+            camTargetCFrame = camTargetCFrame + worldMove
+        end
 
-		local yawCFrame = CFrame.Angles(0, yaw, 0)
-		local pitchCFrame = CFrame.Angles(pitch, 0, 0)
-		local targetCFrame = CFrame.new(camTargetCFrame.Position) * yawCFrame * pitchCFrame
+        local yawCFrame = CFrame.Angles(0, yaw, 0)
+        local pitchCFrame = CFrame.Angles(pitch, 0, 0)
+        local targetCFrame = CFrame.new(camTargetCFrame.Position) * yawCFrame * pitchCFrame
 
-		Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 0.1)
-		Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 0.1)
+        Camera.CameraType = Enum.CameraType.Scriptable
 
-		Camera.FieldOfView = Camera.FieldOfView + (targetFOV - Camera.FieldOfView) * 0.1
-	else
-		if Camera.CameraType == Enum.CameraType.Scriptable then
-			Camera.CameraType = Enum.CameraType.Custom
-			Camera.FieldOfView = defaultFOV
-		end
-	end
+        Camera.FieldOfView = Camera.FieldOfView + (targetFOV - Camera.FieldOfView) * 0.1
+    else
+        if Camera.CameraType == Enum.CameraType.Scriptable then
+            Camera.CameraType = Enum.CameraType.Custom
+            Camera.FieldOfView = defaultFOV
+        end
+    end
 end)
