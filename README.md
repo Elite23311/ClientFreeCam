@@ -12,7 +12,7 @@ local moveForward, moveBackward, moveLeft, moveRight, moveUp, moveDown = false, 
 
 local yaw, pitch = 0, 0
 local targetYaw, targetPitch = 0, 0
-local sensitivity = 0.65
+local sensitivity = 0.35
 
 local humanoid = nil
 local oldWalkSpeed, oldJumpPower
@@ -123,36 +123,34 @@ end)
 
 RunService.RenderStepped:Connect(function(dt)
 	if freecamEnabled and camTargetCFrame then
-		-- Smoothly interpolate angles for fluid rotation
 		yaw = yaw + (targetYaw - yaw) * 0.1
 		pitch = pitch + (targetPitch - pitch) * 0.1
 
+		local camRotation = CFrame.Angles(pitch, yaw, 0)
+		local lookVector = camRotation.LookVector
+		local rightVector = camRotation.RightVector
+		local upVector = Vector3.new(0, 1, 0)
+
 		local moveVec = Vector3.new()
-		if moveForward then moveVec = moveVec + Vector3.new(0, 0, -1) end
-		if moveBackward then moveVec = moveVec + Vector3.new(0, 0, 1) end
-		if moveLeft then moveVec = moveVec + Vector3.new(-1, 0, 0) end
-		if moveRight then moveVec = moveVec + Vector3.new(1, 0, 0) end
-		if moveUp then moveVec = moveVec + Vector3.new(0, 1, 0) end
-		if moveDown then moveVec = moveVec + Vector3.new(0, -1, 0) end
+		if moveForward then moveVec = moveVec + lookVector end
+		if moveBackward then moveVec = moveVec - lookVector end
+		if moveLeft then moveVec = moveVec - rightVector end
+		if moveRight then moveVec = moveVec + rightVector end
+		if moveUp then moveVec = moveVec + upVector end
+		if moveDown then moveVec = moveVec - upVector end
 
 		if moveVec.Magnitude > 0 then
 			moveVec = moveVec.Unit * camSpeed * dt
-			local camRotation = CFrame.Angles(pitch, yaw, 0)
-			local worldMove = camRotation:VectorToWorldSpace(moveVec)
-			camTargetCFrame = camTargetCFrame + worldMove
+			camTargetCFrame = camTargetCFrame + moveVec
 		end
-
-		-- Apply yaw then pitch for smooth natural rotation
+  
 		local yawCFrame = CFrame.Angles(0, yaw, 0)
 		local pitchCFrame = CFrame.Angles(pitch, 0, 0)
 		local targetCFrame = CFrame.new(camTargetCFrame.Position) * yawCFrame * pitchCFrame
 
-		-- Smoothly lerp the camera to target CFrame
 		Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 0.1)
-		Camera.CameraType = Enum.CameraType.Scriptable
-
-		-- Smoothly lerp FieldOfView
 		Camera.FieldOfView = Camera.FieldOfView + (targetFOV - Camera.FieldOfView) * 0.1
+		Camera.CameraType = Enum.CameraType.Scriptable
 	else
 		if Camera.CameraType == Enum.CameraType.Scriptable then
 			Camera.CameraType = Enum.CameraType.Custom
@@ -160,4 +158,3 @@ RunService.RenderStepped:Connect(function(dt)
 		end
 	end
 end)
-
