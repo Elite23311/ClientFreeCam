@@ -12,7 +12,7 @@ local moveForward, moveBackward, moveLeft, moveRight, moveUp, moveDown = false, 
 
 local yaw, pitch = 0, 0
 local targetYaw, targetPitch = 0, 0
-local sensitivity = 0.35
+local sensitivity = 0.65 -- updated sensitivity
 
 local humanoid = nil
 local oldWalkSpeed, oldJumpPower
@@ -21,7 +21,6 @@ local camTargetCFrame = nil
 local defaultFOV = 70
 local targetFOV = defaultFOV
 
--- Table to store original ScreenGui.Enabled states
 local guiStates = {}
 
 local function getHumanoid()
@@ -52,14 +51,11 @@ local function unfreezePlayer()
 end
 
 local function disableGui()
-	-- Disable CoreGui as before
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 	StarterGui:SetCore("ResetButtonCallback", false)
-
-	-- Disable all ScreenGuis in PlayerGui and save their previous states
 	local playerGui = player:FindFirstChildOfClass("PlayerGui")
 	if playerGui then
-		guiStates = {} -- reset
+		guiStates = {}
 		for _, gui in pairs(playerGui:GetChildren()) do
 			if gui:IsA("ScreenGui") then
 				guiStates[gui] = gui.Enabled
@@ -70,11 +66,8 @@ local function disableGui()
 end
 
 local function enableGui()
-	-- Enable CoreGui as before
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 	StarterGui:SetCore("ResetButtonCallback", true)
-
-	-- Restore all ScreenGuis Enabled states
 	for gui, wasEnabled in pairs(guiStates) do
 		if gui and gui.Parent then
 			gui.Enabled = wasEnabled
@@ -152,13 +145,16 @@ RunService.RenderStepped:Connect(function(dt)
 		yaw = yaw + (targetYaw - yaw) * 0.1
 		pitch = pitch + (targetPitch - pitch) * 0.1
 
-		-- Calculate directional vectors from rotation
+		-- Clamp pitch to avoid weird flipping
+		pitch = math.clamp(pitch, -math.pi/2 + 0.01, math.pi/2 - 0.01)
+
+		-- Calculate rotation from yaw and pitch
 		local camRotation = CFrame.Angles(pitch, yaw, 0)
 		local lookVector = camRotation.LookVector
 		local rightVector = camRotation.RightVector
 		local upVector = Vector3.new(0, 1, 0)
 
-		-- Construct movement vector from input
+		-- Build move vector based on current rotation
 		local moveVec = Vector3.new()
 		if moveForward then moveVec = moveVec + lookVector end
 		if moveBackward then moveVec = moveVec - lookVector end
@@ -167,23 +163,19 @@ RunService.RenderStepped:Connect(function(dt)
 		if moveUp then moveVec = moveVec + upVector end
 		if moveDown then moveVec = moveVec - upVector end
 
-		-- Move camera position
 		if moveVec.Magnitude > 0 then
 			moveVec = moveVec.Unit * camSpeed * dt
 			camTargetCFrame = camTargetCFrame + moveVec
 		end
 
-		-- Compose camera CFrame from position and rotation
-		local yawCFrame = CFrame.Angles(0, yaw, 0)
-		local pitchCFrame = CFrame.Angles(pitch, 0, 0)
-		local targetCFrame = CFrame.new(camTargetCFrame.Position) * yawCFrame * pitchCFrame
+		-- Compose final camera CFrame
+		local targetCFrame = CFrame.new(camTargetCFrame.Position) * camRotation
 
-		-- Smoothly lerp camera to target
+		-- Smoothly interpolate camera CFrame and FOV
 		Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 0.1)
 		Camera.FieldOfView = Camera.FieldOfView + (targetFOV - Camera.FieldOfView) * 0.1
 		Camera.CameraType = Enum.CameraType.Scriptable
 	else
-		-- Restore camera when freecam disabled
 		if Camera.CameraType == Enum.CameraType.Scriptable then
 			Camera.CameraType = Enum.CameraType.Custom
 			Camera.FieldOfView = defaultFOV
