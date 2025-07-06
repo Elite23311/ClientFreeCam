@@ -12,7 +12,7 @@ local moveForward, moveBackward, moveLeft, moveRight, moveUp, moveDown = false, 
 
 local yaw, pitch = 0, 0
 local targetYaw, targetPitch = 0, 0
-local sensitivity = 0.65 -- updated sensitivity
+local sensitivity = 0.65
 
 local humanoid = nil
 local oldWalkSpeed, oldJumpPower
@@ -132,7 +132,7 @@ UserInputService.InputChanged:Connect(function(input, gameProcessed)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
 			local delta = input.Delta
 			targetYaw = targetYaw - delta.X * sensitivity * 0.0025
-			targetPitch = math.clamp(targetPitch - delta.Y * sensitivity * 0.0025, -math.pi/2, math.pi/2)
+			targetPitch = math.clamp(targetPitch - delta.Y * sensitivity * 0.0025, -math.pi/2 + 0.01, math.pi/2 - 0.01)
 		elseif input.UserInputType == Enum.UserInputType.MouseWheel then
 			targetFOV = math.clamp(targetFOV - input.Position.Z * 5, 20, 120)
 		end
@@ -141,25 +141,21 @@ end)
 
 RunService.RenderStepped:Connect(function(dt)
 	if freecamEnabled and camTargetCFrame then
-		-- Smooth interpolate rotation angles
-		yaw = yaw + (targetYaw - yaw) * 0.1
-		pitch = pitch + (targetPitch - pitch) * 0.1
-		
-		-- Clamp pitch to avoid flipping
-		pitch = math.clamp(pitch, -math.pi/2 + 0.01, math.pi/2 - 0.01)
-		
-		-- Calculate camera rotation CFrame from pitch and yaw
+		-- Smoothly interpolate yaw and pitch angles
+		yaw = yaw + (targetYaw - yaw) * 0.15
+		pitch = pitch + (targetPitch - pitch) * 0.15
+
+		-- Construct camera rotation from yaw and pitch
 		local camRotation = CFrame.Angles(pitch, yaw, 0)
 		
-		-- Compose tentative target CFrame with current position and rotation
+		-- Compose new target CFrame with current position and rotation
 		local targetCFrame = CFrame.new(camTargetCFrame.Position) * camRotation
 		
-		-- Use the *target* camera rotation (not yaw/pitch alone) for movement vectors
+		-- Calculate movement vectors based on current camera rotation
 		local lookVector = targetCFrame.LookVector
 		local rightVector = targetCFrame.RightVector
 		local upVector = Vector3.new(0, 1, 0)
 		
-		-- Calculate movement vector based on keys and *current* camera rotation
 		local moveVec = Vector3.new()
 		if moveForward then moveVec = moveVec + lookVector end
 		if moveBackward then moveVec = moveVec - lookVector end
@@ -173,11 +169,10 @@ RunService.RenderStepped:Connect(function(dt)
 			camTargetCFrame = camTargetCFrame + moveVec
 		end
 		
-		-- Smoothly lerp actual camera CFrame to target
-		Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 0.1)
-		
+		-- Smoothly lerp the camera's actual CFrame to targetCFrame
+		Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 0.15)
 		-- Smoothly lerp FOV
-		Camera.FieldOfView = Camera.FieldOfView + (targetFOV - Camera.FieldOfView) * 0.1
+		Camera.FieldOfView = Camera.FieldOfView + (targetFOV - Camera.FieldOfView) * 0.15
 		
 		Camera.CameraType = Enum.CameraType.Scriptable
 	else
@@ -187,3 +182,4 @@ RunService.RenderStepped:Connect(function(dt)
 		end
 	end
 end)
+)
