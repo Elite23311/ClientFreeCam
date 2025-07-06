@@ -144,17 +144,22 @@ RunService.RenderStepped:Connect(function(dt)
 		-- Smooth interpolate rotation angles
 		yaw = yaw + (targetYaw - yaw) * 0.1
 		pitch = pitch + (targetPitch - pitch) * 0.1
-
-		-- Clamp pitch to avoid weird flipping
+		
+		-- Clamp pitch to avoid flipping
 		pitch = math.clamp(pitch, -math.pi/2 + 0.01, math.pi/2 - 0.01)
-
-		-- Calculate rotation from yaw and pitch
+		
+		-- Calculate camera rotation CFrame from pitch and yaw
 		local camRotation = CFrame.Angles(pitch, yaw, 0)
-		local lookVector = camRotation.LookVector
-		local rightVector = camRotation.RightVector
+		
+		-- Compose tentative target CFrame with current position and rotation
+		local targetCFrame = CFrame.new(camTargetCFrame.Position) * camRotation
+		
+		-- Use the *target* camera rotation (not yaw/pitch alone) for movement vectors
+		local lookVector = targetCFrame.LookVector
+		local rightVector = targetCFrame.RightVector
 		local upVector = Vector3.new(0, 1, 0)
-
-		-- Build move vector based on current rotation
+		
+		-- Calculate movement vector based on keys and *current* camera rotation
 		local moveVec = Vector3.new()
 		if moveForward then moveVec = moveVec + lookVector end
 		if moveBackward then moveVec = moveVec - lookVector end
@@ -162,18 +167,18 @@ RunService.RenderStepped:Connect(function(dt)
 		if moveRight then moveVec = moveVec + rightVector end
 		if moveUp then moveVec = moveVec + upVector end
 		if moveDown then moveVec = moveVec - upVector end
-
+		
 		if moveVec.Magnitude > 0 then
 			moveVec = moveVec.Unit * camSpeed * dt
 			camTargetCFrame = camTargetCFrame + moveVec
 		end
-
-		-- Compose final camera CFrame
-		local targetCFrame = CFrame.new(camTargetCFrame.Position) * camRotation
-
-		-- Smoothly interpolate camera CFrame and FOV
+		
+		-- Smoothly lerp actual camera CFrame to target
 		Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, 0.1)
+		
+		-- Smoothly lerp FOV
 		Camera.FieldOfView = Camera.FieldOfView + (targetFOV - Camera.FieldOfView) * 0.1
+		
 		Camera.CameraType = Enum.CameraType.Scriptable
 	else
 		if Camera.CameraType == Enum.CameraType.Scriptable then
